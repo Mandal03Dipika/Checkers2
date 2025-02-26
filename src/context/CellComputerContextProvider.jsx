@@ -27,6 +27,8 @@ const CellComputerContextProvider = ({ children }) => {
 
   const [play] = useSound(sound);
 
+  const [capture, setCapture] = useState(false);
+
   const handleClick = (
     cell,
     setBoard,
@@ -38,9 +40,8 @@ const CellComputerContextProvider = ({ children }) => {
     setWin,
     setComputerMoved
   ) => {
-    if (gameOver) {
-      return;
-    }
+    if (gameOver) return;
+
     if (
       (cell.piece !== null && selectedPiece === null) ||
       (cell.piece !== null && selectedPiece !== null)
@@ -54,6 +55,7 @@ const CellComputerContextProvider = ({ children }) => {
         (highlightedCell) =>
           highlightedCell.row === cell.row && highlightedCell.col === cell.col
       );
+
       if (isValidMove) {
         const newBoard = boardSwap(board, selectedPiece, cell);
         if (cell.row === 0 && selectedPiece.piece === "gold") {
@@ -62,10 +64,26 @@ const CellComputerContextProvider = ({ children }) => {
         setBoard(newBoard);
         setSelectedPiece(null);
         setHighlightedCells([]);
-        setIsSilverTurn(!isSilverTurn);
-        checkGameOver(newBoard, setGameOver, setWin);
-        play();
-        setComputerMoved(true);
+        if (capture && hasFurtherCaptures(selectedPiece, cell, newBoard)) {
+          setTimeout(() => {
+            const move = {
+              row: cell.row,
+              col: cell.col,
+              piece: selectedPiece.piece,
+            };
+            setSelectedPiece(move);
+            setHighlightedCells(
+              possibleMoves(moves(move.piece), move, newBoard)
+            );
+          }, 300);
+          checkGameOver(newBoard, setGameOver, setWin);
+          play();
+        } else {
+          setIsSilverTurn(!isSilverTurn);
+          checkGameOver(newBoard, setGameOver, setWin);
+          play();
+          setComputerMoved(true);
+        }
       } else {
         setSelectedPiece(null);
         setHighlightedCells([]);
@@ -73,9 +91,57 @@ const CellComputerContextProvider = ({ children }) => {
     }
   };
 
+  const hasFurtherCaptures = (selectedPiece, cell, board) => {
+    const movement = moves(selectedPiece.piece);
+    const move = {
+      row: cell.row,
+      col: cell.col,
+      piece: selectedPiece.piece,
+    };
+    const x = captureMove(movement, move, board);
+    if (x.length != 0) {
+      return true;
+    }
+    return false;
+  };
+
+  const captureMove = (movement, cell, board) => {
+    let possibleMove = [];
+    movement.forEach((move) => {
+      let row = cell.row + move[0];
+      let col = cell.col + move[1];
+      if (row >= 0 && row < 8 && col >= 0 && col < 8) {
+        if (
+          (cell.piece === "grey" && board[row][col].piece === "gold") ||
+          (cell.piece === "grey_king" &&
+            (board[row][col].piece === "gold" ||
+              board[row][col].piece === "gold_king")) ||
+          (cell.piece === "gold" && board[row][col].piece === "grey") ||
+          (cell.piece === "gold_king" &&
+            (board[row][col].piece === "grey" ||
+              board[row][col].piece === "grey_king"))
+        ) {
+          let jumpRow = row + move[0];
+          let jumpCol = col + move[1];
+          if (
+            jumpRow >= 0 &&
+            jumpRow < 8 &&
+            jumpCol >= 0 &&
+            jumpCol < 8 &&
+            board[jumpRow][jumpCol].piece === null
+          ) {
+            possibleMove.push({ row: jumpRow, col: jumpCol });
+          }
+        }
+      }
+    });
+    return possibleMove;
+  };
+
   const possibleMoves = (movement, cell, board) => {
     let possibleMove = [];
     let canJump = false;
+    setCapture(canJump);
     movement.forEach((move) => {
       let row = cell.row + move[0];
       let col = cell.col + move[1];
@@ -108,12 +174,7 @@ const CellComputerContextProvider = ({ children }) => {
       }
     });
     if (canJump) {
-      return possibleMove.filter((move) => {
-        return (
-          move.row !== cell.row + movement[0][0] ||
-          move.col !== cell.col + movement[0][1]
-        );
-      });
+      setCapture(canJump);
     }
     return possibleMove;
   };

@@ -54,7 +54,7 @@ function CellComputer({
   return (
     <>
       <div
-        className={`text-white min-w-[40px] sm:min-w-[50px] md:min-w-[60px] aspect-square flex items-center justify-center border border-white text-sm sm:text-base md:text-lg
+        className={`text-white cursor-pointer min-w-[40px] sm:min-w-[50px] md:min-w-[60px] aspect-square flex items-center justify-center border border-white text-sm sm:text-base md:text-lg
         ${color} ${moves}
         ${window.innerWidth <= 375 ? "min-w-[40px] text-xs" : ""}
         ${window.innerWidth <= 360 ? "min-w-[45px] text-sm" : ""}
